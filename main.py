@@ -6,12 +6,6 @@ from PIL import Image, ImageTk, ImagePalette
 
 ### VARIABLES ###
 
-sb_height = 100
-sb_width = 100
-
-#sandbox
-sandbox = np.reshape(np.array([np.array([255, 25, 255])]*sb_height*sb_width, dtype = np.uint8), (sb_height, sb_width, -1))
-
 #drawing palette
 #pal = ImagePalette.ImagePalette(palette=[252,251,237,197,245,152,133,191,78,83,133,37,89,64,13], size=15)
 
@@ -22,7 +16,42 @@ max_slope = 3
 bucket_size = 1
 
 
+class Sandbox:
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+        
+        self.array = np.zeros((height, width))
+        
+        #self.array = np.reshape(np.array([np.array([255, 255, 255])]*sb_height*sb_width, dtype = np.uint8), (sb_height, sb_width, -1))
 
+# converts sandbox array into an image
+class ImageBuilder:
+    def __init__(self):
+        self.zoom = 1
+        self.palette = [np.array([252,251,237]), np.array([197,245,152]), np.array([133,191,78]), np.array([83,133,37]), np.array([89,64,13])]
+    
+    def to_image(self, array):
+        image_array = np.zeros((array.shape[0], array.shape[1], 3), dtype=np.uint8)
+        
+        #TODO: better way to do this?
+        for x in range(array.shape[0]):
+            for y in range(array.shape[1]):
+                image_array[x, y] = self.palette[int(array[x, y])]
+        
+        
+        img1 = Image.fromarray(image_array, mode="RGB")
+        
+        #TODO: zoom?
+        
+        img2 = ImageTk.PhotoImage(img1)
+        
+        return img2
+    
+
+
+sandbox = Sandbox(100, 100)
+ib = ImageBuilder()
 
 
 ### MAIN WINDOW KEY BINDS ###
@@ -113,10 +142,8 @@ drawing_frame.pack()
 
 # draw image from sandbox array
 # TODO: replace with function later in order to define palette, pixel size, etc.
-img = Image.fromarray(sandbox, mode="RGB")
-print(img.getpixel((0, 0)))
 
-ph = ImageTk.PhotoImage(img)
-main_canvas.create_image(0, 0, image=ph, anchor="nw")
+img = ib.to_image(sandbox.array)
+main_canvas.create_image(0, 0, image=img, anchor="nw")
 
 main_window.mainloop()
