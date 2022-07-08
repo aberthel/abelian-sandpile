@@ -6,25 +6,25 @@ from PIL import Image, ImageTk, ImagePalette
 
 ### VARIABLES ###
 
-#drawing palette
-#pal = ImagePalette.ImagePalette(palette=[252,251,237,197,245,152,133,191,78,83,133,37,89,64,13], size=15)
-
 #spill_pattern
 
 max_slope = 3
 #spill_queue
-bucket_size = 1
-
 
 class Sandbox:
     def __init__(self, height, width):
         self.height = height
         self.width = width
         
+        self.bucket = 1
+        
         self.array = np.zeros((height, width))
         
-        #self.array = np.reshape(np.array([np.array([255, 255, 255])]*sb_height*sb_width, dtype = np.uint8), (sb_height, sb_width, -1))
-
+    
+    def place_sand(self, x, y):
+        self.array[x, y] += self.bucket
+        #TODO: check for spilling, initiate spill if necessary
+    
 # converts sandbox array into an image
 class ImageBuilder:
     def __init__(self):
@@ -52,7 +52,6 @@ class ImageBuilder:
 
 sandbox = Sandbox(100, 100)
 ib = ImageBuilder()
-
 
 ### MAIN WINDOW KEY BINDS ###
 
@@ -108,8 +107,18 @@ def open_save(event):
     # TODO: open save window
     print("open save window")
 
+def update_image():
+    global current_image
+    current_image = ib.to_image(sandbox.array)
+    main_canvas.itemconfig(image_container, image=current_image)
 
-
+def place_sand(event):
+    sandbox.place_sand(event.y, event.x)
+    
+    update_image()
+    
+    
+    
 
 
 
@@ -135,6 +144,7 @@ settings_button.pack(side=tk.LEFT)
 save_button.pack(side=tk.RIGHT)
 
 main_canvas = tk.Canvas(master=drawing_frame, bg="white", height=100, width=100)
+main_canvas.bind("<Button-1>", place_sand)
 main_canvas.pack()
 
 header_frame.pack()
@@ -142,8 +152,7 @@ drawing_frame.pack()
 
 # draw image from sandbox array
 # TODO: replace with function later in order to define palette, pixel size, etc.
-
-img = ib.to_image(sandbox.array)
-main_canvas.create_image(0, 0, image=img, anchor="nw")
+current_image = ib.to_image(sandbox.array)
+image_container = main_canvas.create_image(0, 0, image=current_image, anchor="nw")
 
 main_window.mainloop()
