@@ -15,39 +15,43 @@ class Sandbox:
     def __init__(self, height, width):
         self.height = height
         self.width = width
-        
+
         self.bucket = 1
-        
+
         self.array = np.zeros((height, width))
-        
-    
-    def place_sand(self, x, y):
-        self.array[x, y] += self.bucket
+
+
+    def place_sand(self, tup):
+
+        self.array[tup[1], tup[0]] += self.bucket
         #TODO: check for spilling, initiate spill if necessary
-    
+
 # converts sandbox array into an image
 class ImageBuilder:
     def __init__(self):
-        self.zoom = 1
+        self.zoom = 10
         self.palette = [np.array([252,251,237]), np.array([197,245,152]), np.array([133,191,78]), np.array([83,133,37]), np.array([89,64,13])]
-    
+
     def to_image(self, array):
         image_array = np.zeros((array.shape[0], array.shape[1], 3), dtype=np.uint8)
-        
+
         #TODO: better way to do this?
         for x in range(array.shape[0]):
             for y in range(array.shape[1]):
                 image_array[x, y] = self.palette[int(array[x, y])]
-        
-        
-        img1 = Image.fromarray(image_array, mode="RGB")
-        
+
+
+        img1 = Image.fromarray(image_array, mode="RGB").resize((array.shape[0] * self.zoom, array.shape[1] * self.zoom), resample = Image.NEAREST)
+
         #TODO: zoom?
-        
+
         img2 = ImageTk.PhotoImage(img1)
-        
+
         return img2
-    
+
+    def im_to_coords(self, x, y):
+        return (int(x/self.zoom), int(y/self.zoom))
+
 
 
 sandbox = Sandbox(100, 100)
@@ -113,12 +117,12 @@ def update_image():
     main_canvas.itemconfig(image_container, image=current_image)
 
 def place_sand(event):
-    sandbox.place_sand(event.y, event.x)
-    
+    sandbox.place_sand(ib.im_to_coords(event.x, event.y))
+
     update_image()
-    
-    
-    
+
+
+
 
 
 
@@ -143,7 +147,8 @@ title_label.pack(side=tk.TOP)
 settings_button.pack(side=tk.LEFT)
 save_button.pack(side=tk.RIGHT)
 
-main_canvas = tk.Canvas(master=drawing_frame, bg="white", height=100, width=100)
+## TODO: size of drawing frame needs to be dynamic in the future
+main_canvas = tk.Canvas(master=drawing_frame, bg="grey", height=1000, width=1000)
 main_canvas.bind("<Button-1>", place_sand)
 main_canvas.pack()
 
