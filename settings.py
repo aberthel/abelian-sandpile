@@ -141,4 +141,7 @@ class Window:
         print("Apply setting changes")
     
     def toggle_pixel(self, event):
-        print("Toggle pixel")
+        self.spe.toggle_pixel(event)
+        self.spill_image = self.spe.to_image()
+        self.spill_canvas.itemconfig(self.spill_container, image=self.spill_image)
+        
