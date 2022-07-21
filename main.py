@@ -3,7 +3,7 @@
 import tkinter as tk
 import numpy as np
 from PIL import Image, ImageTk, ImagePalette
-import time
+import settings
 
 class Sandbox:
     def __init__(self, height, width):
@@ -56,9 +56,8 @@ class Sandbox:
 # converts sandbox array into an image
 class ImageBuilder:
     def __init__(self):
-        self.zoom = 10
+        self.zoom = 5
 
-        self.spill_pattern_zoom = 50
         #TODO: make sure palette has at least as many options as max_slope + 1 when it's set
         self.palette = [np.array([252,251,237]), np.array([197,245,152]), np.array([133,191,78]), np.array([83,133,37]), np.array([89,64,13])]
         self.overflow_color = np.array([201, 30, 18])
@@ -89,120 +88,26 @@ class ImageBuilder:
     def im_to_coords(self, x, y):
         return (int(x/self.zoom), int(y/self.zoom))
 
-    def spill_pattern_to_image(self, sandbox):
-        image_array = np.zeros((sandbox.spill_pattern.shape[0], sandbox.spill_pattern.shape[1], 3), dtype=np.uint8)
+    
 
-        #TODO: better way to do this?
-        for x in range(sandbox.spill_pattern.shape[0]):
-            for y in range(sandbox.spill_pattern.shape[1]):
 
-                if sandbox.spill_pattern[x, y] == 0:
-                    image_array[x, y] = np.array([255, 255, 255])
-                else:
-                    image_array[x, y] = np.array([0, 0, 0])
-
-        img1 = Image.fromarray(image_array, mode="RGB").resize((sandbox.spill_pattern.shape[0] * self.spill_pattern_zoom, sandbox.spill_pattern.shape[1] * self.spill_pattern_zoom), resample = Image.NEAREST)
-
-        img2 = ImageTk.PhotoImage(img1)
-
-        return img2
 
 
 sandbox = Sandbox(100, 100)
 ib = ImageBuilder()
+sw = ""
 
 ### MAIN WINDOW KEY BINDS ###
 
 def open_settings(event):
+    global sw
+    sw = settings.Window(main_canvas, sandbox)
+ 
+
+def update_spill_image():
     global spill_image
-
-    settings_window = tk.Toplevel(main_window)
-
-    # frame 1
-
-    top_frame = tk.Frame(master=settings_window)
-
-    settings_label = tk.Label(master=top_frame, text="Settings")
-    height_label = tk.Label(master=top_frame, text="Sandbox Height")
-    height_entry = tk.Entry(master=top_frame, width=10)
-    height_entry.insert(0, str(sandbox.height))
-    width_label = tk.Label(master=top_frame, text="Sandbox Width")
-    width_entry = tk.Entry(master=top_frame, width=10)
-    width_entry.insert(0, str(sandbox.width))
-
-    settings_label.pack(side=tk.TOP)
-    height_label.pack(side=tk.LEFT)
-    height_entry.pack(side=tk.LEFT)
-    width_entry.pack(side=tk.RIGHT)
-    width_label.pack(side=tk.RIGHT)
-
-    # frame 2
-
-    second_frame = tk.Frame(master=settings_window)
-
-    size_note_label = tk.Label(master=second_frame, text="Warning: changing sandbox size will reset the current pattern.")
-
-    size_note_label.pack()
-
-    # frame 3 : slope
-    third_frame = tk.Frame(master=settings_window)
-
-    slope_label = tk.Label(master=third_frame, text="Max Slope")
-    less_slope_button = tk.Button(master=third_frame, text="-")
-    slope_indicator_label = tk.Label(master=third_frame, text=str(sandbox.max_slope))
-    more_slope_button = tk.Button(master=third_frame, text="+")
-
-    slope_label.pack(side=tk.LEFT)
-    more_slope_button.pack(side=tk.RIGHT)
-    slope_indicator_label.pack(side=tk.RIGHT)
-    less_slope_button.pack(side=tk.RIGHT)
-
-
-    #frame 4: bucket size
-    fourth_frame = tk.Frame(master=settings_window)
-    bucket_label = tk.Label(master=fourth_frame, text = "Bucket Size")
-    bucket_entry = tk.Entry(master=fourth_frame, width=20)
-    bucket_entry.insert(0, str(sandbox.bucket))
-
-    bucket_label.pack(side=tk.LEFT)
-    bucket_entry.pack(side=tk.RIGHT)
-
-    # frame 5: spill pattern
-    fifth_frame = tk.Frame(master=settings_window)
-    spill_pattern_label = tk.Label(master=fifth_frame, text="Spill Pattern (click to edit)")
-    # TODO: for some reason, small amount of background visible in right and bottom edges
-    spill_canvas = tk.Canvas(master=fifth_frame, bg="grey", height=sandbox.spill_pattern.shape[0] * ib.spill_pattern_zoom, width=sandbox.spill_pattern.shape[1] * ib.spill_pattern_zoom)
-
-    spill_pattern_label.pack()
-    spill_canvas.pack()
-
-    # TODO: this isn't going to work because we only want to edit sandbox if user applies settings
-    spill_image = ib.spill_pattern_to_image(sandbox)
-    print(spill_image)
-    spill_container = spill_canvas.create_image(0, 0, image=spill_image, anchor="nw")
-
-    # bottom frame
-    bottom_frame = tk.Frame(master=settings_window)
-
-    apply_button = tk.Button(master=bottom_frame, text="Apply New Settings")
-    #apply_button.bind("<Button-1>", apply_setting_changes)
-    cancel_button = tk.Button(master=bottom_frame, text="Cancel", command=settings_window.destroy)
-
-    apply_button.pack(side=tk.LEFT)
-    cancel_button.pack(side=tk.RIGHT)
-    # pack all frames
-
-    top_frame.pack()
-    second_frame.pack()
-    third_frame.pack()
-    fourth_frame.pack()
-    fifth_frame.pack()
-    bottom_frame.pack()
-
-
-
-    settings_window.grab_set()
-
+    spill_image = spe.to_image()
+    spill_canvas.itemconfig(spill_container, image=spill_image)
 
 def open_save(event):
     # TODO: open save window
@@ -245,7 +150,7 @@ settings_button.pack(side=tk.LEFT)
 save_button.pack(side=tk.RIGHT)
 
 ## TODO: size of drawing frame needs to be dynamic in the future
-main_canvas = tk.Canvas(master=drawing_frame, bg="grey", height=1000, width=1000)
+main_canvas = tk.Canvas(master=drawing_frame, bg="grey", height=ib.zoom*sandbox.height, width=ib.zoom*sandbox.width)
 main_canvas.bind("<Button-1>", place_sand)
 main_canvas.pack()
 
@@ -257,6 +162,6 @@ drawing_frame.pack()
 current_image = ib.to_image(sandbox)
 image_container = main_canvas.create_image(0, 0, image=current_image, anchor="nw")
 
-spill_image = ib.spill_pattern_to_image(sandbox)
+spill_image = ""
 
 main_window.mainloop()
