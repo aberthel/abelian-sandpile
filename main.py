@@ -22,7 +22,6 @@ class Sandbox:
     def place_sand(self, tup):
 
         self.array[tup[1], tup[0]] += self.bucket
-        # NOTE: will this work when multiple scripts are used???
         update_image()
         if self.array[tup[1], tup[0]] > self.max_slope:
 
@@ -47,7 +46,8 @@ class Sandbox:
                         #NOTE: animation of spilling doesn't happen. Force computer to wait?
                         update_image()
                         if self.array[tup[1] - mid_i + i, tup[0] - mid_j + j] > self.max_slope:
-                            self.spill_queue.append((tup[0] - mid_j + j, tup[1] - mid_i + i))
+                            if not ((tup[0] - mid_j + j, tup[1] - mid_i + i)) in self.spill_queue:
+                                self.spill_queue.append((tup[0] - mid_j + j, tup[1] - mid_i + i))
 
 
 
@@ -88,7 +88,7 @@ class ImageBuilder:
     def im_to_coords(self, x, y):
         return (int(x/self.zoom), int(y/self.zoom))
 
-    
+
 
 
 
@@ -102,7 +102,7 @@ sw = ""
 def open_settings(event):
     global sw
     sw = settings.Window(main_canvas, sandbox)
- 
+
 
 def update_spill_image():
     global spill_image
@@ -117,19 +117,10 @@ def update_image():
     global current_image
     current_image = ib.to_image(sandbox)
     main_canvas.itemconfig(image_container, image=current_image)
+    main_window.update()
 
 def place_sand(event):
     sandbox.place_sand(ib.im_to_coords(event.x, event.y))
-
-    #update_image()
-
-
-
-
-
-
-
-
 
 
 ### MAIN WINDOW SETUP ###
