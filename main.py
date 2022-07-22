@@ -101,7 +101,7 @@ sw = ""
 
 def open_settings(event):
     global sw
-    sw = settings.Window(main_canvas, sandbox)
+    sw = settings.Window(main_canvas, sandbox, ib)
 
 
 def update_spill_image():

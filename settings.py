@@ -40,8 +40,9 @@ class SpillPatternEditor:
 
 # Builds and handles events for the settings window
 class Window:
-    def __init__(self, main_window, sandbox):
+    def __init__(self, main_window, sandbox, ib):
         self.sandbox = sandbox
+        self.ib = ib
         self.window = tk.Toplevel(main_window)
 
         ## Set up frames ##
@@ -116,13 +117,25 @@ class Window:
         self.spill_image = self.spe.to_image()
         self.spill_container = self.spill_canvas.create_image(0, 0, image=self.spill_image, anchor="nw")
 
-        # Frame 6: apply and cancel buttons
+        # Frame 6: Color picker selection
 
         self.frame6 = tk.Frame(master=self.window)
 
-        self.apply_button = tk.Button(master=self.frame6, text="Apply New Settings")
+        self.color_picker_label = tk.Label(master=self.frame6, text="Pixel Colors (click to edit)")
+        self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", bg=self.rgb_to_hex(ib.overflow_color))
+
+        # TODO: list full of buttons for each allowed color
+
+        self.color_picker_label.pack()
+        self.overflow_color_button.pack()
+
+        # Frame 7: apply and cancel buttons
+
+        self.frame7 = tk.Frame(master=self.window)
+
+        self.apply_button = tk.Button(master=self.frame7, text="Apply New Settings")
         self.apply_button.bind("<Button-1>", self.apply_setting_changes)
-        self.cancel_button = tk.Button(master=self.frame6, text="Cancel", command=self.window.destroy)
+        self.cancel_button = tk.Button(master=self.frame7, text="Cancel", command=self.window.destroy)
 
         self.apply_button.pack(side=tk.LEFT)
         self.cancel_button.pack(side=tk.RIGHT)
@@ -135,10 +148,14 @@ class Window:
         self.frame4.pack()
         self.frame5.pack()
         self.frame6.pack()
+        self.frame7.pack()
 
         # And finally for init, grab set
 
         self.window.grab_set()
+
+    def rgb_to_hex(self, a):
+        return '#%02x%02x%02x' % (a[0], a[1], a[2])
 
     def add_slope(self, event):
         new_slope = int(self.slope_indicator_label["text"]) + 1
@@ -146,8 +163,11 @@ class Window:
 
     def subtract_slope(self, event):
         # TODO: need to make sure max slope and spill pattern are compatible
-        new_slope = int(self.slope_indicator_label["text"]) - 1
-        self.slope_indicator_label.configure(text=str(new_slope))
+        # check that max slope is at least as many as full pixels
+        min_max = self.spe.pattern.sum() - 1
+        if int(self.slope_indicator_label["text"]) > min_max:
+            new_slope = int(self.slope_indicator_label["text"]) - 1
+            self.slope_indicator_label.configure(text=str(new_slope))
 
     def apply_setting_changes(self, event):
         #TODO: height and width changes
@@ -164,6 +184,11 @@ class Window:
         self.spe.toggle_pixel(event)
         self.spill_image = self.spe.to_image()
         self.spill_canvas.itemconfig(self.spill_container, image=self.spill_image)
+
+        # check that max slope is at least as many as full pixels
+        min_max = self.spe.pattern.sum() - 1
+        if int(self.slope_indicator_label["text"]) < min_max:
+            self.slope_indicator_label.configure(text=min_max)
 
     def reset_spill_pattern(self, pattern):
         self.spe.pattern = pattern
