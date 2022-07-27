@@ -1,8 +1,10 @@
 ### settings window class
 ### requires tkinter as tk
 import tkinter as tk
+from tkinter.colorchooser import askcolor
 import numpy as np
 from PIL import Image, ImageTk, ImagePalette
+from functools import partial
 
 class SpillPatternEditor:
     def __init__(self, pattern):
@@ -120,14 +122,21 @@ class Window:
         # Frame 6: Color picker selection
 
         self.frame6 = tk.Frame(master=self.window)
-
+        
+        #TODO: button bg color doesn't work right on macs, do version handling for that
         self.color_picker_label = tk.Label(master=self.frame6, text="Pixel Colors (click to edit)")
-        self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", bg=self.rgb_to_hex(ib.overflow_color))
-
-        # TODO: list full of buttons for each allowed color
+        self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", highlightbackground=self.rgb_to_hex(ib.overflow_color))
+        self.overflow_color_button.bind("<Button-1>", lambda event, x=-1: self.choose_color(x))
+        
+        self.color_buttons = []
+        for x in range(len(ib.palette)):
+            self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), highlightbackground=self.rgb_to_hex(ib.palette[x])))
+            self.color_buttons[x].bind("<Button-1>", lambda event, x=x: self.choose_color(x))
 
         self.color_picker_label.pack()
         self.overflow_color_button.pack()
+        for x in range(len(ib.palette)):
+            self.color_buttons[x].pack()
 
         # Frame 7: apply and cancel buttons
 
@@ -136,7 +145,7 @@ class Window:
         self.apply_button = tk.Button(master=self.frame7, text="Apply New Settings")
         self.apply_button.bind("<Button-1>", self.apply_setting_changes)
         self.cancel_button = tk.Button(master=self.frame7, text="Cancel", command=self.window.destroy)
-
+        
         self.apply_button.pack(side=tk.LEFT)
         self.cancel_button.pack(side=tk.RIGHT)
 
@@ -153,13 +162,29 @@ class Window:
         # And finally for init, grab set
 
         self.window.grab_set()
-
+    
+    #TODO: apply to all color buttons
+    def choose_color(self, x):
+        new_color = askcolor(title="Pick New Color")
+        
+        if x < 0:
+            self.overflow_color_button.configure(highlightbackground=new_color[1])
+        else:
+            self.color_buttons[x].configure(highlightbackground=new_color[1])
+            
+            print(self.color_buttons[x]["highlightbackground"])
+    
     def rgb_to_hex(self, a):
         return '#%02x%02x%02x' % (a[0], a[1], a[2])
-
+    
+    def hex_to_rgb(self, a):
+        hex = a.lstrip("#")
+        return np.asarray(tuple(int(hex[i:i+2], 16) for i in (0, 2, 4)))
+    
     def add_slope(self, event):
         new_slope = int(self.slope_indicator_label["text"]) + 1
         self.slope_indicator_label.configure(text=str(new_slope))
+        self.add_color()
 
     def subtract_slope(self, event):
         # TODO: need to make sure max slope and spill pattern are compatible
@@ -168,7 +193,24 @@ class Window:
         if int(self.slope_indicator_label["text"]) > min_max:
             new_slope = int(self.slope_indicator_label["text"]) - 1
             self.slope_indicator_label.configure(text=str(new_slope))
-
+            self.subtract_color()
+            
+    def add_color(self):
+        x = int(self.slope_indicator_label["text"])
+        
+        if x >= len(self.color_buttons):
+            self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), highlightbackground="#ffffff"))
+            self.color_buttons[x].bind("<Button-1>", lambda event, x=x: self.choose_color(x))
+            self.color_buttons[x].pack()
+        else:
+            self.color_buttons[x].pack()
+        
+    
+    def subtract_color(self):
+        x = int(self.slope_indicator_label["text"])
+        
+        self.color_buttons[x+1].pack_forget()
+    
     def apply_setting_changes(self, event):
         #TODO: height and width changes
         # max slope
@@ -177,7 +219,14 @@ class Window:
         self.sandbox.bucket = int(self.bucket_entry.get())
         #spill pattern
         self.sandbox.spill_pattern = self.spe.pattern.copy()
-
+        #pixel colors
+        self.ib.overflow_color = self.hex_to_rgb(self.overflow_color_button["highlightbackground"])
+        palette = []
+        for x in range(self.sandbox.max_slope+1):
+            palette.append(self.hex_to_rgb(self.color_buttons[x]["highlightbackground"]))
+        self.ib.palette = palette
+        
+        
         self.window.destroy()
 
     def toggle_pixel(self, event):
@@ -189,8 +238,5 @@ class Window:
         min_max = self.spe.pattern.sum() - 1
         if int(self.slope_indicator_label["text"]) < min_max:
             self.slope_indicator_label.configure(text=min_max)
+            self.add_color()
 
-    def reset_spill_pattern(self, pattern):
-        self.spe.pattern = pattern
-        self.spill_image = self.spe.to_image()
-        self.spill_canvas.itemconfig(self.spill_container, image=self.spill_image)

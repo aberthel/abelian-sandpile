@@ -59,7 +59,7 @@ class ImageBuilder:
         self.zoom = 5
 
         #TODO: make sure palette has at least as many options as max_slope + 1 when it's set
-        self.palette = [np.array([252,251,237]), np.array([197,245,152]), np.array([133,191,78]), np.array([83,133,37]), np.array([89,64,13])]
+        self.palette = [np.array([252,251,237]), np.array([197,245,152]), np.array([133,191,78]), np.array([83,133,37])]
         self.overflow_color = np.array([201, 30, 18])
 
 
