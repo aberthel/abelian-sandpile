@@ -74,13 +74,18 @@ class Window:
         self.width_entry.pack(side=tk.RIGHT)
         self.width_label.pack(side=tk.RIGHT)
 
-        # Frame 2: warning note about changing size
+        # Frame 2: warning note about changing size and zoom
 
         self.frame2 = tk.Frame(master=self.window)
 
         self.size_note_label = tk.Label(master=self.frame2, text="Warning: changing sandbox size will reset the current pattern.")
+        self.zoom_label = tk.Label(master=self.frame2, text="Sandbox Zoom")
+        self.zoom_entry = tk.Entry(master=self.frame2, width=10)
+        self.zoom_entry.insert(0, str(ib.zoom))
 
-        self.size_note_label.pack()
+        self.size_note_label.pack(side=tk.TOP)
+        self.zoom_label.pack()
+        self.zoom_entry.pack()
 
         # Frame 3: max slope before grains spill
 
@@ -257,7 +262,13 @@ class Window:
         self.color_buttons[x+1].pack_forget()
 
     def apply_setting_changes(self, event):
-        #TODO: height and width changes
+        # height and width
+        if not int(self.height_entry.get()) == self.sandbox.height or not int(self.width_entry.get()) == self.sandbox.width:
+            self.sandbox.height = int(self.height_entry.get())
+            self.sandbox.width = int(self.width_entry.get())
+            self.sandbox.array = self.array = np.zeros((self.sandbox.width, self.sandbox.height))
+        # zoom
+        self.ib.zoom = int(self.zoom_entry.get())
         # max slope
         self.sandbox.max_slope = int(self.slope_indicator_label["text"])
         #bucket size

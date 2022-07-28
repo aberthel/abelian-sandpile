@@ -12,7 +12,7 @@ class Sandbox:
 
         self.bucket = 1
         self.max_slope = 3 #i.e. if cell has a slope of 4, then add it to the spill queue
-        self.array = np.zeros((height, width))
+        self.array = np.zeros((width, height))
 
         self.spill_pattern = np.array([[0,1,0], [1,0,1], [0,1,0]])
 
@@ -122,7 +122,9 @@ def update_image():
 def place_sand(event):
     sandbox.place_sand(ib.im_to_coords(event.x, event.y))
 
-
+def return_focus(event):
+    main_canvas.configure(height=ib.zoom*sandbox.height, width=ib.zoom*sandbox.width)
+    update_image()
 ### MAIN WINDOW SETUP ###
 
 main_window = tk.Tk()
@@ -154,5 +156,5 @@ current_image = ib.to_image(sandbox)
 image_container = main_canvas.create_image(0, 0, image=current_image, anchor="nw")
 
 spill_image = ""
-
+main_window.bind("<FocusIn>", return_focus)
 main_window.mainloop()
