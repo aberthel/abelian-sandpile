@@ -5,6 +5,7 @@ from tkinter.colorchooser import askcolor
 import numpy as np
 from PIL import Image, ImageTk, ImagePalette
 from functools import partial
+import platform
 
 class SpillPatternEditor:
     def __init__(self, pattern):
@@ -46,6 +47,10 @@ class Window:
         self.sandbox = sandbox
         self.ib = ib
         self.window = tk.Toplevel(main_window)
+
+        self.isMac = False
+        if platform.system() == "Darwin":
+            self.isMac = True
 
         ## Set up frames ##
 
@@ -112,9 +117,15 @@ class Window:
         self.spill_pattern_label = tk.Label(master=self.frame5, text="Spill Pattern (click to edit)")
         self.spill_canvas = tk.Canvas(master=self.frame5, bg="grey", height=self.spe.pattern.shape[0]*self.spe.zoom, width=self.spe.pattern.shape[1]*self.spe.zoom)
         self.spill_canvas.bind("<Button-1>", self.toggle_pixel)
+        self.inc_spill_button = tk.Button(master=self.frame5, text="Increase Pattern Size")
+        self.dec_spill_button = tk.Button(master=self.frame5, text="Decrease Pattern Size")
+        self.inc_spill_button.bind("<Button-1>", self.inc_pattern_size)
+        self.dec_spill_button.bind("<Button-1>", self.dec_pattern_size)
 
         self.spill_pattern_label.pack()
         self.spill_canvas.pack()
+        self.inc_spill_button.pack(side=tk.LEFT)
+        self.dec_spill_button.pack(side=tk.RIGHT)
 
         self.spill_image = self.spe.to_image()
         self.spill_container = self.spill_canvas.create_image(0, 0, image=self.spill_image, anchor="nw")
@@ -122,15 +133,22 @@ class Window:
         # Frame 6: Color picker selection
 
         self.frame6 = tk.Frame(master=self.window)
-        
+
         #TODO: button bg color doesn't work right on macs, do version handling for that
+        # maybe just replace buttons with labels? they don't *have* to be buttons
         self.color_picker_label = tk.Label(master=self.frame6, text="Pixel Colors (click to edit)")
-        self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", highlightbackground=self.rgb_to_hex(ib.overflow_color))
+        if self.isMac:
+            self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", highlightbackground=self.rgb_to_hex(ib.overflow_color))
+        else:
+            self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", bg=self.rgb_to_hex(ib.overflow_color))
         self.overflow_color_button.bind("<Button-1>", lambda event, x=-1: self.choose_color(x))
-        
+
         self.color_buttons = []
         for x in range(len(ib.palette)):
-            self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), highlightbackground=self.rgb_to_hex(ib.palette[x])))
+            if self.isMac:
+                self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), highlightbackground=self.rgb_to_hex(ib.palette[x])))
+            else:
+                self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), bg=self.rgb_to_hex(ib.palette[x])))
             self.color_buttons[x].bind("<Button-1>", lambda event, x=x: self.choose_color(x))
 
         self.color_picker_label.pack()
@@ -145,7 +163,7 @@ class Window:
         self.apply_button = tk.Button(master=self.frame7, text="Apply New Settings")
         self.apply_button.bind("<Button-1>", self.apply_setting_changes)
         self.cancel_button = tk.Button(master=self.frame7, text="Cancel", command=self.window.destroy)
-        
+
         self.apply_button.pack(side=tk.LEFT)
         self.cancel_button.pack(side=tk.RIGHT)
 
@@ -162,55 +180,82 @@ class Window:
         # And finally for init, grab set
 
         self.window.grab_set()
-    
+
     #TODO: apply to all color buttons
     def choose_color(self, x):
         new_color = askcolor(title="Pick New Color")
-        
+
         if x < 0:
-            self.overflow_color_button.configure(highlightbackground=new_color[1])
+            if self.isMac:
+                self.overflow_color_button.configure(highlightbackground=new_color[1])
+            else:
+                self.overflow_color_button.configure(bg=new_color[1])
         else:
-            self.color_buttons[x].configure(highlightbackground=new_color[1])
-            
-            print(self.color_buttons[x]["highlightbackground"])
-    
+            if self.isMac:
+                self.color_buttons[x].configure(highlightbackground=new_color[1])
+            else:
+                self.color_buttons[x].configure(bg=new_color[1])
+
     def rgb_to_hex(self, a):
         return '#%02x%02x%02x' % (a[0], a[1], a[2])
-    
+
     def hex_to_rgb(self, a):
         hex = a.lstrip("#")
         return np.asarray(tuple(int(hex[i:i+2], 16) for i in (0, 2, 4)))
-    
+
     def add_slope(self, event):
         new_slope = int(self.slope_indicator_label["text"]) + 1
         self.slope_indicator_label.configure(text=str(new_slope))
         self.add_color()
 
     def subtract_slope(self, event):
-        # TODO: need to make sure max slope and spill pattern are compatible
         # check that max slope is at least as many as full pixels
         min_max = self.spe.pattern.sum() - 1
         if int(self.slope_indicator_label["text"]) > min_max:
             new_slope = int(self.slope_indicator_label["text"]) - 1
             self.slope_indicator_label.configure(text=str(new_slope))
             self.subtract_color()
-            
+
+    def inc_pattern_size(self, event):
+        v = np.zeros((self.spe.pattern.shape[0], 1), dtype=np.uint8)
+        h = np.zeros((1, self.spe.pattern.shape[1]+2), dtype=np.uint8)
+
+        a = np.concatenate((v, self.spe.pattern, v), axis=1)
+        self.spe.pattern = np.concatenate((h, a, h), axis=0)
+        self.spill_canvas.configure(height=self.spe.pattern.shape[0]*self.spe.zoom, width=self.spe.pattern.shape[1]*self.spe.zoom)
+        self.spill_image = self.spe.to_image()
+        self.spill_canvas.itemconfig(self.spill_container, image=self.spill_image)
+
+    def dec_pattern_size(self, event):
+        # we don't want a pattern smaller than three pixels per side!
+        if self.spe.pattern.shape[0] > 3:
+            self.spe.pattern = self.spe.pattern[1:-1, 1:-1]
+
+            self.spill_canvas.configure(height=self.spe.pattern.shape[0]*self.spe.zoom, width=self.spe.pattern.shape[1]*self.spe.zoom)
+            self.spill_image = self.spe.to_image()
+            self.spill_canvas.itemconfig(self.spill_container, image=self.spill_image)
+
+        pass
+
     def add_color(self):
         x = int(self.slope_indicator_label["text"])
-        
+
         if x >= len(self.color_buttons):
-            self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), highlightbackground="#ffffff"))
+            if self.isMac:
+                self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), highlightbackground="#ffffff"))
+            else:
+                self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), bg="#ffffff"))
             self.color_buttons[x].bind("<Button-1>", lambda event, x=x: self.choose_color(x))
             self.color_buttons[x].pack()
         else:
             self.color_buttons[x].pack()
-        
-    
+
+
     def subtract_color(self):
         x = int(self.slope_indicator_label["text"])
-        
+
         self.color_buttons[x+1].pack_forget()
-    
+
     def apply_setting_changes(self, event):
         #TODO: height and width changes
         # max slope
@@ -220,13 +265,19 @@ class Window:
         #spill pattern
         self.sandbox.spill_pattern = self.spe.pattern.copy()
         #pixel colors
-        self.ib.overflow_color = self.hex_to_rgb(self.overflow_color_button["highlightbackground"])
+        if self.isMac:
+            self.ib.overflow_color = self.hex_to_rgb(self.overflow_color_button["highlightbackground"])
+        else:
+            self.ib.overflow_color = self.hex_to_rgb(self.overflow_color_button["bg"])
         palette = []
         for x in range(self.sandbox.max_slope+1):
-            palette.append(self.hex_to_rgb(self.color_buttons[x]["highlightbackground"]))
+            if self.isMac:
+                palette.append(self.hex_to_rgb(self.color_buttons[x]["highlightbackground"]))
+            else:
+                palette.append(self.hex_to_rgb(self.color_buttons[x]["bg"]))
         self.ib.palette = palette
-        
-        
+
+
         self.window.destroy()
 
     def toggle_pixel(self, event):
@@ -239,4 +290,3 @@ class Window:
         if int(self.slope_indicator_label["text"]) < min_max:
             self.slope_indicator_label.configure(text=min_max)
             self.add_color()
-
