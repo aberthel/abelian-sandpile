@@ -7,9 +7,7 @@ from tkinter.filedialog import asksaveasfilename
 import settings
 import sandboxes
 
-# TODO: interchange triangular and hexagonal sandboxes
-sandbox = sandboxes.Sandbox(100, 100)
-sw = ""
+
 
 ### MAIN WINDOW KEY BINDS ###
 
@@ -19,26 +17,14 @@ def open_settings(event):
     sw = settings.Window(main_canvas, sandbox)
 
 
-#def update_spill_image():
-#    global spill_image
-#    spill_image = spe.to_image()
-#    spill_canvas.itemconfig(spill_container, image=spill_image)
-
 # opens save dialog box
 def open_save(event):
 
-    # only PNG images are supported at the moment    
+    # only PNG images are supported at the moment
     supported_filetypes = [('PNG Image', '*.png')]
-    
+
     filename = asksaveasfilename(filetypes=supported_filetypes, defaultextension=supported_filetypes)
     sandbox.image.save(filename, "PNG")
-
-# update image displayed on main canvas
-def update_image():
-    global current_image # image has to be saved in a global variable or gc removes it
-    current_image = sandbox.to_image()
-    main_canvas.itemconfig(image_container, image=current_image)
-    main_window.update()
 
 # handles button press event on main canvas
 def place_sand(event):
@@ -48,8 +34,8 @@ def place_sand(event):
 # called whenever settings window is closed so that zoom and color palette automatically change
 def return_focus(event):
     main_canvas.configure(height=sandbox.zoom*sandbox.height, width=sandbox.zoom*sandbox.width)
-    update_image()
-    
+    sandbox.update_canvas()
+
 ### MAIN WINDOW SETUP ###
 
 main_window = tk.Tk()
@@ -69,17 +55,22 @@ settings_button.pack(side=tk.LEFT)
 save_button.pack(side=tk.RIGHT)
 
 # canvas holds the sandpile image and is interactive by clicking with left mouse button
-main_canvas = tk.Canvas(master=drawing_frame, bg="grey", height=sandbox.zoom*sandbox.height, width=sandbox.zoom*sandbox.width)
+main_canvas = tk.Canvas(master=drawing_frame, bg="grey", height=500, width=500)
 main_canvas.bind("<Button-1>", place_sand)
 main_canvas.pack()
 
 header_frame.pack()
 drawing_frame.pack()
 
-# draw image from sandbox array
-current_image = sandbox.to_image()
-image_container = main_canvas.create_image(0, 0, image=current_image, anchor="nw")
+# TODO: interchange triangular and hexagonal sandboxes
+sandbox = sandboxes.Sandbox(100, 100, main_canvas, main_window)
 
-spill_image = "" #TODO: remove???
+# draw image from sandbox array
+sandbox.to_image()
+image_container = main_canvas.create_image(0, 0, image=sandbox.photoimage, anchor="nw")
+sandbox.image_container = image_container
+sandbox.update_canvas()
+
+sw = ""
 main_window.bind("<FocusIn>", return_focus)
 main_window.mainloop()

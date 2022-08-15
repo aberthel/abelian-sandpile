@@ -45,7 +45,6 @@ class SpillPatternEditor:
 class Window:
     def __init__(self, main_window, sandbox):
         self.sandbox = sandbox
-        self.ib = ib
         self.window = tk.Toplevel(main_window)
 
         self.isMac = False
@@ -81,7 +80,7 @@ class Window:
         self.size_note_label = tk.Label(master=self.frame2, text="Warning: changing sandbox size will reset the current pattern.")
         self.zoom_label = tk.Label(master=self.frame2, text="Sandbox Zoom")
         self.zoom_entry = tk.Entry(master=self.frame2, width=10)
-        self.zoom_entry.insert(0, str(ib.zoom))
+        self.zoom_entry.insert(0, str(sandbox.zoom))
 
         self.size_note_label.pack(side=tk.TOP)
         self.zoom_label.pack()
@@ -143,22 +142,22 @@ class Window:
         # maybe just replace buttons with labels? they don't *have* to be buttons
         self.color_picker_label = tk.Label(master=self.frame6, text="Pixel Colors (click to edit)")
         if self.isMac:
-            self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", highlightbackground=self.rgb_to_hex(ib.overflow_color))
+            self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", highlightbackground=self.rgb_to_hex(sandbox.overflow_color))
         else:
-            self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", bg=self.rgb_to_hex(ib.overflow_color))
+            self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", bg=self.rgb_to_hex(sandbox.overflow_color))
         self.overflow_color_button.bind("<Button-1>", lambda event, x=-1: self.choose_color(x))
 
         self.color_buttons = []
-        for x in range(len(ib.palette)):
+        for x in range(len(sandbox.palette)):
             if self.isMac:
-                self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), highlightbackground=self.rgb_to_hex(ib.palette[x])))
+                self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), highlightbackground=self.rgb_to_hex(sandbox.palette[x])))
             else:
-                self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), bg=self.rgb_to_hex(ib.palette[x])))
+                self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), bg=self.rgb_to_hex(sandbox.palette[x])))
             self.color_buttons[x].bind("<Button-1>", lambda event, x=x: self.choose_color(x))
 
         self.color_picker_label.pack()
         self.overflow_color_button.pack()
-        for x in range(len(ib.palette)):
+        for x in range(len(sandbox.palette)):
             self.color_buttons[x].pack()
 
         # Frame 7: apply and cancel buttons
@@ -268,7 +267,7 @@ class Window:
             self.sandbox.width = int(self.width_entry.get())
             self.sandbox.array = self.array = np.zeros((self.sandbox.width, self.sandbox.height))
         # zoom
-        self.ib.zoom = int(self.zoom_entry.get())
+        self.sandbox.zoom = int(self.zoom_entry.get())
         # max slope
         self.sandbox.max_slope = int(self.slope_indicator_label["text"])
         #bucket size
@@ -277,16 +276,16 @@ class Window:
         self.sandbox.spill_pattern = self.spe.pattern.copy()
         #pixel colors
         if self.isMac:
-            self.ib.overflow_color = self.hex_to_rgb(self.overflow_color_button["highlightbackground"])
+            self.sandbox.overflow_color = self.hex_to_rgb(self.overflow_color_button["highlightbackground"])
         else:
-            self.ib.overflow_color = self.hex_to_rgb(self.overflow_color_button["bg"])
+            self.sandbox.overflow_color = self.hex_to_rgb(self.overflow_color_button["bg"])
         palette = []
         for x in range(self.sandbox.max_slope+1):
             if self.isMac:
                 palette.append(self.hex_to_rgb(self.color_buttons[x]["highlightbackground"]))
             else:
                 palette.append(self.hex_to_rgb(self.color_buttons[x]["bg"]))
-        self.ib.palette = palette
+        self.sandbox.palette = palette
 
 
         self.window.destroy()
