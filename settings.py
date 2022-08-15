@@ -43,7 +43,7 @@ class SpillPatternEditor:
 
 # Builds and handles events for the settings window
 class Window:
-    def __init__(self, main_window, sandbox, ib):
+    def __init__(self, main_window, sandbox):
         self.sandbox = sandbox
         self.ib = ib
         self.window = tk.Toplevel(main_window)
