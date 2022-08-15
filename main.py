@@ -3,6 +3,7 @@
 import tkinter as tk
 import numpy as np
 from PIL import Image, ImageTk, ImagePalette
+from tkinter.filedialog import asksaveasfilename
 import settings
 
 class Sandbox:
@@ -84,6 +85,21 @@ class ImageBuilder:
         img2 = ImageTk.PhotoImage(img1)
 
         return img2
+        
+    def image_to_save(self, sandbox):
+        image_array = np.zeros((sandbox.array.shape[0], sandbox.array.shape[1], 3), dtype=np.uint8)
+
+        for x in range(sandbox.array.shape[0]):
+            for y in range(sandbox.array.shape[1]):
+
+                if sandbox.array[x, y] <= sandbox.max_slope:
+                    image_array[x, y] = self.palette[int(sandbox.array[x, y])]
+                else:
+                    image_array[x, y] = self.overflow_color
+
+
+        return Image.fromarray(image_array, mode="RGB").resize((sandbox.array.shape[0] * self.zoom, sandbox.array.shape[1] * self.zoom), resample = Image.NEAREST)
+
 
     def im_to_coords(self, x, y):
         return (int(x/self.zoom), int(y/self.zoom))
@@ -110,8 +126,13 @@ def update_spill_image():
     spill_canvas.itemconfig(spill_container, image=spill_image)
 
 def open_save(event):
-    # TODO: open save window
     print("open save window")
+    
+    supported_filetypes = [('PNG Image', '*.png')]
+    
+    filename = asksaveasfilename(filetypes=supported_filetypes, defaultextension=supported_filetypes)
+    
+    ib.image_to_save(sandbox).save(filename, "PNG")
 
 def update_image():
     global current_image
