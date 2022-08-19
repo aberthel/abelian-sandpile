@@ -1,5 +1,13 @@
 #!/usr/bin/#!/usr/bin/env python3
+"""
+Author: Ana Berthel
+Date Last Modified: Aug 19, 2022
 
+This program is an interactive implementation of the abelian sandpile model,
+a type of cellular automaton. Users can click on the canvas area to
+deposit 'grains of sand' onto the field, which will spill over into adjacent
+areas following a specified pattern. The patterns can be saved to PNG files.
+"""
 import tkinter as tk
 import numpy as np
 from PIL import Image, ImageTk, ImagePalette

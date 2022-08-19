@@ -1,5 +1,13 @@
-### settings window class
-### requires tkinter as tk
+#!/usr/bin/#!/usr/bin/env python3
+"""
+Author: Ana Berthel
+Date Last Modified: Aug 19, 2022
+
+Defines the settings window class as well as the auxilliary spill pattern editor
+class. Used to change parameters of the model and adjust how it is converted into
+an image.
+"""
+
 import tkinter as tk
 from tkinter.colorchooser import askcolor
 import numpy as np

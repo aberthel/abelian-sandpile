@@ -1,5 +1,11 @@
-# classes for sandbox and imagebuilder
-# TODO: add triangle sandbox and hex sandbox
+#!/usr/bin/#!/usr/bin/env python3
+"""
+Author: Ana Berthel
+Date Last Modified: Aug 19, 2022
+
+Contains the Sandbox class, which implements the actual mathematical model. It
+also converts the numerical array to an image based on user-defined parameters.
+"""
 
 import tkinter as tk
 import numpy as np
