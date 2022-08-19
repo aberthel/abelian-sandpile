@@ -12,11 +12,9 @@ import numpy as np
 from PIL import Image, ImageTk, ImagePalette
 
 
-# sandbox class holds the main sandbox array and handles the "spill" event
 class Sandbox:
+    """ Sandbox class holds the main sandbox array and handles the spill event """
 
-    # height and width are the only required parameters
-    # everything else is initiated to a default value
     def __init__(self, height, width, canvas, window):
         # dimensions of sandbox array
         self.height = height
@@ -41,10 +39,8 @@ class Sandbox:
         self.image_container = ""
         self.window = window
 
-    # called when user clicks a cell on the GUI
-    # tup is the cell the user clicked
     def place_sand(self, tup):
-
+        """ Called when user clicks a cell on the GUI, places sand on the array """
         # increment cell's value by bucket size
         self.array[tup[1], tup[0]] += self.bucket
 
@@ -58,8 +54,8 @@ class Sandbox:
                 self.spill_queue.append(tup)
                 self.spill()
 
-    # spill event
     def spill(self):
+        """ Spill event - called when a cell's value exceeds the maximum allowed """
         # TODO: lock place_sand input? - not strictly necessary, program still works with multiple inputs
         # loop repeats until there are no cells left in the spill queue
         while self.spill_queue:
@@ -86,10 +82,13 @@ class Sandbox:
                             if not ((tup[0] - mid_j + j, tup[1] - mid_i + i)) in self.spill_queue:
                                 self.spill_queue.append((tup[0] - mid_j + j, tup[1] - mid_i + i))
 
-    # generate image from array using image settings
-    # stores Image in variable self.image for later to save as png
-    # returns PhotoImage for use in canvas
     def to_image(self):
+        """
+        Generates image from array
+        stores Image in variable for later to save as png
+        returns PhotoImage for use in Canvas
+        """
+
         image_array = np.zeros((self.array.shape[0], self.array.shape[1], 3), dtype=np.uint8)
 
         #TODO: better way to do this?
@@ -107,11 +106,11 @@ class Sandbox:
         self.photoimage = ImageTk.PhotoImage(self.image)
 
     def update_canvas(self):
+        """ Updates canvas with new image from array """
         self.to_image()
         self.canvas.itemconfig(self.image_container, image=self.photoimage)
         self.window.update()
 
-
-    # converts canvas coordinates to array coordinates
     def im_to_coords(self, x, y):
+        """ Converts canvas coordinates to array coordinates """
         return (int(x/self.zoom), int(y/self.zoom))

@@ -16,14 +16,21 @@ from functools import partial
 import platform
 
 class SpillPatternEditor:
+    """
+    Contains an array that defines a new spill pattern to be used by the Sandbox.
+    Also converts that array to an image for display by settings window.
+    """
+
     def __init__(self, pattern):
         self.pattern = pattern.copy()
         self.zoom = 50
 
     def to_image(self):
+        """ Convert array to PhotoImage for display """
+
         image_array = np.zeros((self.pattern.shape[0], self.pattern.shape[1], 3), dtype=np.uint8)
 
-        #TODO: better way to do this?
+        #TODO: better way to do this? More pythonic?
         for x in range(self.pattern.shape[0]):
             for y in range(self.pattern.shape[1]):
 
@@ -39,6 +46,8 @@ class SpillPatternEditor:
         return img2
 
     def toggle_pixel(self, event):
+        """ toggles pixel value between 0 and 1 based on mouse click event """
+
         x = int(event.x/self.zoom)
         y = int(event.y/self.zoom)
 
@@ -51,6 +60,11 @@ class SpillPatternEditor:
 
 # Builds and handles events for the settings window
 class Window:
+    """
+    Builds the settings window and handles events.
+    Used to change Sandbox parameters.
+    """
+
     def __init__(self, main_window, sandbox):
         self.sandbox = sandbox
         self.window = tk.Toplevel(main_window)
@@ -144,15 +158,19 @@ class Window:
 
         # Frame 6: Color picker selection
 
+        # Frame 6a: Label and overflow
+
+        self.frame6a = tk.Frame(master=self.window)
+
         self.frame6 = tk.Frame(master=self.window)
 
         #TODO: button bg color doesn't work right on macs, do version handling for that
         # maybe just replace buttons with labels? they don't *have* to be buttons
-        self.color_picker_label = tk.Label(master=self.frame6, text="Pixel Colors (click to edit)")
+        self.color_picker_label = tk.Label(master=self.frame6a, text="Pixel Colors (click to edit)")
         if self.isMac:
-            self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", highlightbackground=self.rgb_to_hex(sandbox.overflow_color))
+            self.overflow_color_button = tk.Button(master=self.frame6a, text="overflow", highlightbackground=self.rgb_to_hex(sandbox.overflow_color))
         else:
-            self.overflow_color_button = tk.Button(master=self.frame6, text="overflow", bg=self.rgb_to_hex(sandbox.overflow_color))
+            self.overflow_color_button = tk.Button(master=self.frame6a, text="overflow", bg=self.rgb_to_hex(sandbox.overflow_color))
         self.overflow_color_button.bind("<Button-1>", lambda event, x=-1: self.choose_color(x))
 
         self.color_buttons = []
@@ -166,7 +184,7 @@ class Window:
         self.color_picker_label.pack()
         self.overflow_color_button.pack()
         for x in range(len(sandbox.palette)):
-            self.color_buttons[x].pack()
+            self.color_buttons[x].grid(column=x+1, row=1)
 
         # Frame 7: apply and cancel buttons
 
@@ -186,6 +204,7 @@ class Window:
         self.frame3.pack()
         self.frame4.pack()
         self.frame5.pack()
+        self.frame6a.pack()
         self.frame6.pack()
         self.frame7.pack()
 
@@ -193,8 +212,9 @@ class Window:
 
         self.window.grab_set()
 
-    #TODO: apply to all color buttons
     def choose_color(self, x):
+        """ Opens color picker and sets button x to selected color """
+
         new_color = askcolor(title="Pick New Color")
 
         if x < 0:
@@ -209,18 +229,22 @@ class Window:
                 self.color_buttons[x].configure(bg=new_color[1])
 
     def rgb_to_hex(self, a):
+        """ converts rgb tuple to hex string """
         return '#%02x%02x%02x' % (a[0], a[1], a[2])
 
     def hex_to_rgb(self, a):
+        """ converts hex string to rgb numpy array """
         hex = a.lstrip("#")
         return np.asarray(tuple(int(hex[i:i+2], 16) for i in (0, 2, 4)))
 
     def add_slope(self, event):
+        """ increases max slope label by 1 """
         new_slope = int(self.slope_indicator_label["text"]) + 1
         self.slope_indicator_label.configure(text=str(new_slope))
         self.add_color()
 
     def subtract_slope(self, event):
+        """ decreases max slope label by 1 if constraints allow it """
         # check that max slope is at least as many as full pixels
         min_max = self.spe.pattern.sum() - 1
         if int(self.slope_indicator_label["text"]) > min_max:
@@ -229,6 +253,7 @@ class Window:
             self.subtract_color()
 
     def inc_pattern_size(self, event):
+        """ Increases the size of the spill pattern by 1 on every side """
         v = np.zeros((self.spe.pattern.shape[0], 1), dtype=np.uint8)
         h = np.zeros((1, self.spe.pattern.shape[1]+2), dtype=np.uint8)
 
@@ -239,6 +264,7 @@ class Window:
         self.spill_canvas.itemconfig(self.spill_container, image=self.spill_image)
 
     def dec_pattern_size(self, event):
+        """ Decreases the size of the spill pattern by 1 on every side """
         # we don't want a pattern smaller than three pixels per side!
         if self.spe.pattern.shape[0] > 3:
             self.spe.pattern = self.spe.pattern[1:-1, 1:-1]
@@ -250,6 +276,7 @@ class Window:
         pass
 
     def add_color(self):
+        """ Add a color button to the window """
         x = int(self.slope_indicator_label["text"])
 
         if x >= len(self.color_buttons):
@@ -258,17 +285,19 @@ class Window:
             else:
                 self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), bg="#ffffff"))
             self.color_buttons[x].bind("<Button-1>", lambda event, x=x: self.choose_color(x))
-            self.color_buttons[x].pack()
+            self.color_buttons[x].grid(column=x+1, row=1)
         else:
-            self.color_buttons[x].pack()
+            self.color_buttons[x].grid(column=x+1, row=1)
 
 
     def subtract_color(self):
+        """ Remove a color button from the window """
         x = int(self.slope_indicator_label["text"])
 
-        self.color_buttons[x+1].pack_forget()
+        self.color_buttons[x+1].grid_forget()
 
     def apply_setting_changes(self, event):
+        """ Apply setting changes to the parameters in Sandbox and close window """
         # height and width
         if not int(self.height_entry.get()) == self.sandbox.height or not int(self.width_entry.get()) == self.sandbox.width:
             self.sandbox.height = int(self.height_entry.get())
@@ -299,6 +328,7 @@ class Window:
         self.window.destroy()
 
     def toggle_pixel(self, event):
+        """ Handles click events on the spill pattern canvas """
         self.spe.toggle_pixel(event)
         self.spill_image = self.spe.to_image()
         self.spill_canvas.itemconfig(self.spill_container, image=self.spill_image)

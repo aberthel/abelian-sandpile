@@ -26,7 +26,9 @@ It requires NumPy and Pillow.
 ## How To Run
 
 Download the entire project folder.
+
 In the command line, navigate to the project folder.
+
 `python main.py`
 
 A new window should open.

@@ -19,14 +19,13 @@ import sandboxes
 
 ### MAIN WINDOW KEY BINDS ###
 
-# opens settings window
 def open_settings(event):
+    """ Open settings window """
     global sw
     sw = settings.Window(main_canvas, sandbox)
 
-
-# opens save dialog box
 def open_save(event):
+    """ Open save dialog box """
 
     # only PNG images are supported at the moment
     supported_filetypes = [('PNG Image', '*.png')]
@@ -34,13 +33,13 @@ def open_save(event):
     filename = asksaveasfilename(filetypes=supported_filetypes, defaultextension=supported_filetypes)
     sandbox.image.save(filename, "PNG")
 
-# handles button press event on main canvas
 def place_sand(event):
+    """ Handles button press event on main canvas """
     # TODO: can be streamlined - im_to_coords called within place_sand
     sandbox.place_sand(sandbox.im_to_coords(event.x, event.y))
 
-# called whenever settings window is closed so that zoom and color palette automatically change
 def return_focus(event):
+    """ Called whenever settings window is closed so that zoom and color palette automatically change """
     main_canvas.configure(height=sandbox.zoom*sandbox.height, width=sandbox.zoom*sandbox.width)
     sandbox.update_canvas()
 
