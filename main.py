@@ -70,7 +70,8 @@ header_frame.pack()
 drawing_frame.pack()
 
 # TODO: interchange triangular and hexagonal sandboxes
-sandbox = sandboxes.Sandbox(100, 100, main_canvas, main_window)
+#sandbox = sandboxes.Sandbox(100, 100, main_canvas, main_window)
+sandbox = sandboxes.TriangleSandbox(99, 58, main_canvas, main_window)
 
 # draw image from sandbox array
 sandbox.to_image()

@@ -11,9 +11,10 @@ an image.
 import tkinter as tk
 from tkinter.colorchooser import askcolor
 import numpy as np
-from PIL import Image, ImageTk, ImagePalette
+from PIL import Image, ImageTk, ImagePalette, ImageDraw
 from functools import partial
 import platform
+import math
 
 class SpillPatternEditor:
     """
@@ -56,6 +57,79 @@ class SpillPatternEditor:
         else:
             self.pattern[y, x] = 0
 
+class TriangleSpillPatternEditor:
+    """
+    Contains an array that defines a new triangular spill pattern to be used by the Sandbox.
+    Also converts that array to an image for display by settings window.
+    """
+
+    def __init__(self, pattern, is_up):
+        self.pattern = pattern.copy()
+        self.zoom = 50
+        self.is_up = is_up # is the pattern for an upward-pointing triangle?
+
+    def to_image(self):
+        """ Convert array to PhotoImage for display """
+
+        h = math.sin(math.pi/3)
+        image = im = Image.new("RGB", size=(self.pattern.shape[0] * self.zoom, self.pattern.shape[1] * self.zoom), color="gray")
+        draw = ImageDraw.Draw(image)
+
+        #TODO: better way to do this?
+        for x in range(self.pattern.shape[0]):
+            for y in range(self.pattern.shape[1]):
+                if y % 2 == 0:
+                    x_fixed = int((x+1)/2)
+                    if x % 2 == 0:
+                        coords = [(x_fixed*self.zoom, y*h*self.zoom), ((x_fixed+1)*self.zoom, y*h*self.zoom), ((x_fixed+0.5)*self.zoom, (y+1)*h*self.zoom)]
+                    else:
+                        coords = [((x_fixed)*self.zoom, y*h*self.zoom), ((x_fixed-0.5)*self.zoom, (y+1)*h*self.zoom), ((x_fixed+.5)*self.zoom, (y+1)*h*self.zoom)]
+                else:
+                    x_fixed = int(x/2)
+                    if x % 2 == 0:
+                        coords = [((x_fixed+0.5)*self.zoom, y*h*self.zoom), ((x_fixed+1)*self.zoom, (y+1)*h*self.zoom), (x_fixed*self.zoom, (y+1)*h*self.zoom)]
+                    else:
+                        coords = [((x_fixed+0.5)*self.zoom, y*h*self.zoom), ((x_fixed+1.5)*self.zoom, y*h*self.zoom), ((x_fixed+1)*self.zoom, (y+1)*h*self.zoom)]
+
+
+                if self.pattern[y, x] == 0:
+                    color = "white"
+                else:
+                    color = "black"
+
+                draw.polygon(coords, fill=color)
+
+        return ImageTk.PhotoImage(image)
+
+    def toggle_pixel(self, event):
+        """ toggles pixel value between 0 and 1 based on mouse click event """
+
+        h = math.sin(math.pi/3)
+        x = event.x/self.zoom
+        y = event.y/self.zoom
+
+        y_real = int(y/h)
+
+        y = y - y_real*h
+
+        if y_real % 2 == 1:
+            x = x+.5
+            x_fixed=int(y/(2*h) + x)
+            x_half=int(y/(2*h) - x) * -1
+            x_real = x_half + x_fixed - 1
+        else:
+            x_fixed=int(y/(2*h) + x)
+            x_half=int(y/(2*h) - x) * -1
+            x_real = x_half + x_fixed
+
+        x = x_real
+        y = y_real
+
+        if self.pattern[y, x] == 0:
+            self.pattern[y, x] = 1
+        else:
+            self.pattern[y, x] = 0
+
 
 
 # Builds and handles events for the settings window
@@ -68,6 +142,7 @@ class Window:
     def __init__(self, main_window, sandbox):
         self.sandbox = sandbox
         self.window = tk.Toplevel(main_window)
+        self.shape = "triangle" # TODO: put this in parameters to initialize
 
         self.isMac = False
         if platform.system() == "Darwin":
@@ -139,7 +214,8 @@ class Window:
 
         self.frame5 = tk.Frame(master=self.window)
 
-        self.spe = SpillPatternEditor(sandbox.spill_pattern)
+        #self.spe = SpillPatternEditor(sandbox.spill_pattern)
+        self.spe = TriangleSpillPatternEditor(sandbox.spill_pattern, True)
         self.spill_pattern_label = tk.Label(master=self.frame5, text="Spill Pattern (click to edit)")
         self.spill_canvas = tk.Canvas(master=self.frame5, bg="grey", height=self.spe.pattern.shape[0]*self.spe.zoom, width=self.spe.pattern.shape[1]*self.spe.zoom)
         self.spill_canvas.bind("<Button-1>", self.toggle_pixel)
@@ -168,17 +244,29 @@ class Window:
         # maybe just replace buttons with labels? they don't *have* to be buttons
         self.color_picker_label = tk.Label(master=self.frame6a, text="Pixel Colors (click to edit)")
         if self.isMac:
-            self.overflow_color_button = tk.Button(master=self.frame6a, text="overflow", highlightbackground=self.rgb_to_hex(sandbox.overflow_color))
+            if self.shape == "triangle":
+                self.overflow_color_button = tk.Button(master=self.frame6a, text="overflow", highlightbackground=sandbox.overflow_color)
+            else:
+                self.overflow_color_button = tk.Button(master=self.frame6a, text="overflow", highlightbackground=self.rgb_to_hex(sandbox.overflow_color))
         else:
-            self.overflow_color_button = tk.Button(master=self.frame6a, text="overflow", bg=self.rgb_to_hex(sandbox.overflow_color))
+            if self.shape == "triangle":
+                self.overflow_color_button = tk.Button(master=self.frame6a, text="overflow", bg=sandbox.overflow_color)
+            else:
+                self.overflow_color_button = tk.Button(master=self.frame6a, text="overflow", bg=self.rgb_to_hex(sandbox.overflow_color))
         self.overflow_color_button.bind("<Button-1>", lambda event, x=-1: self.choose_color(x))
 
         self.color_buttons = []
         for x in range(len(sandbox.palette)):
             if self.isMac:
-                self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), highlightbackground=self.rgb_to_hex(sandbox.palette[x])))
+                if self.shape == "triangle":
+                    self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), highlightbackground=sandbox.palette[x]))
+                else:
+                    self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), highlightbackground=self.rgb_to_hex(sandbox.palette[x])))
             else:
-                self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), bg=self.rgb_to_hex(sandbox.palette[x])))
+                if self.shape == "triangle":
+                    self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), bg=sandbox.palette[x]))
+                else:
+                    self.color_buttons.append(tk.Button(master=self.frame6, text=str(x), bg=self.rgb_to_hex(sandbox.palette[x])))
             self.color_buttons[x].bind("<Button-1>", lambda event, x=x: self.choose_color(x))
 
         self.color_picker_label.pack()
@@ -313,15 +401,27 @@ class Window:
         self.sandbox.spill_pattern = self.spe.pattern.copy()
         #pixel colors
         if self.isMac:
-            self.sandbox.overflow_color = self.hex_to_rgb(self.overflow_color_button["highlightbackground"])
+            if self.shape == "triangle":
+                self.sandbox.overflow_color = self.overflow_color_button["highlightbackground"]
+            else:
+                self.sandbox.overflow_color = self.hex_to_rgb(self.overflow_color_button["highlightbackground"])
         else:
-            self.sandbox.overflow_color = self.hex_to_rgb(self.overflow_color_button["bg"])
+            if self.shape == "triangle":
+                self.sandbox.overflow_color = self.overflow_color_button["bg"]
+            else:
+                self.sandbox.overflow_color = self.hex_to_rgb(self.overflow_color_button["bg"])
         palette = []
         for x in range(self.sandbox.max_slope+1):
             if self.isMac:
-                palette.append(self.hex_to_rgb(self.color_buttons[x]["highlightbackground"]))
+                if self.shape == "triangle":
+                    palette.append(self.color_buttons[x]["highlightbackground"])
+                else:
+                    palette.append(self.hex_to_rgb(self.color_buttons[x]["highlightbackground"]))
             else:
-                palette.append(self.hex_to_rgb(self.color_buttons[x]["bg"]))
+                if self.shape == "triangle":
+                    palette.append(self.color_buttons[x]["bg"])
+                else:
+                    palette.append(self.hex_to_rgb(self.color_buttons[x]["bg"]))
         self.sandbox.palette = palette
 
 
